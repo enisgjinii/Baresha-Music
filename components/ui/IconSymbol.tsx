@@ -1,12 +1,11 @@
 // Fallback for using MaterialIcons on Android and web.
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { SymbolViewProps } from 'expo-symbols';
 import { ComponentProps } from 'react';
 import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
 
 type ValidWeight = 'regular' | 'medium' | 'bold' | 'heavy';
-type IconMapping = Record<SymbolViewProps['name'], ComponentProps<typeof MaterialIcons>['name']>;
+type IconMapping = Record<string, ComponentProps<typeof MaterialIcons>['name']>;
 type IconSymbolName = keyof typeof MAPPING;
 
 /**
@@ -23,7 +22,14 @@ const MAPPING = {
   'list.bullet': 'list',
   'heart.fill': 'favorite',
   gear: 'settings',
-} as IconMapping;
+  'person.fill': 'person',
+  'coffee': 'coffee',
+  'house': 'home',
+  'music': 'music-note',
+  'list': 'list',
+  'heart': 'favorite',
+  'settings': 'settings',
+} as const;
 
 /**
  * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.
@@ -37,11 +43,15 @@ export function IconSymbol({
   style,
   weight = 'regular',
 }: {
-  name: IconSymbolName;
+  name: string;
   size?: number;
   color: string | OpaqueColorValue;
   style?: StyleProp<TextStyle>;
   weight?: ValidWeight;
 }) {
-  return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style} />;
+  const iconName = MAPPING[name as keyof typeof MAPPING] || 'help';
+  if (!MAPPING[name as keyof typeof MAPPING]) {
+    console.warn(`IconSymbol: Unmapped icon name '${name}', using fallback 'help' icon.`);
+  }
+  return <MaterialIcons color={color} size={size} name={iconName} style={style} />;
 }

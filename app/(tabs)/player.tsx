@@ -3,27 +3,26 @@ import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { IconButton, Surface, Text, useTheme } from 'react-native-paper';
 
+import { IconSymbol } from '@/components/ui/IconSymbol';
+
+function formatTime(seconds: number) {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
 export default function PlayerScreen() {
   const theme = useTheme();
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration] = useState(180); // 3 minutes in seconds
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  const [duration] = useState(180); // 3 minutes
+  const [isPlaying, setIsPlaying] = useState(false);
 
   return (
     <Surface style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Now Playing</Text>
-      </View>
-
       <View style={styles.playerContainer}>
         <View style={styles.artworkContainer}>
           <Surface style={[styles.artwork, { backgroundColor: theme.colors.surfaceVariant }]}>
-            <IconButton icon="music" size={40} iconColor={theme.colors.primary} />
+            <IconSymbol name="music.note" size={80} color={theme.colors.primary} />
           </Surface>
         </View>
 
@@ -43,6 +42,7 @@ export default function PlayerScreen() {
             minimumTrackTintColor={theme.colors.primary}
             maximumTrackTintColor={theme.colors.surfaceVariant}
             thumbTintColor={theme.colors.primary}
+            style={styles.slider}
           />
           <View style={styles.timeContainer}>
             <Text style={[styles.timeText, { color: theme.colors.onSurfaceVariant }]}>
@@ -55,16 +55,37 @@ export default function PlayerScreen() {
         </View>
 
         <View style={styles.controls}>
-          <IconButton icon="shuffle" size={24} iconColor={theme.colors.onSurfaceVariant} />
-          <IconButton icon="skip-previous" size={32} iconColor={theme.colors.primary} />
           <IconButton
-            icon="play"
+            icon="shuffle"
+            size={24}
+            iconColor={theme.colors.onSurfaceVariant}
+            style={styles.controlButton}
+          />
+          <IconButton
+            icon="skip-previous"
+            size={32}
+            iconColor={theme.colors.primary}
+            style={styles.controlButton}
+          />
+          <IconButton
+            icon={isPlaying ? 'pause' : 'play'}
             size={48}
             iconColor={theme.colors.primary}
-            style={styles.playButton}
+            style={[styles.playButton, { backgroundColor: theme.colors.primaryContainer }]}
+            onPress={() => setIsPlaying(!isPlaying)}
           />
-          <IconButton icon="skip-next" size={32} iconColor={theme.colors.primary} />
-          <IconButton icon="repeat" size={24} iconColor={theme.colors.onSurfaceVariant} />
+          <IconButton
+            icon="skip-next"
+            size={32}
+            iconColor={theme.colors.primary}
+            style={styles.controlButton}
+          />
+          <IconButton
+            icon="repeat"
+            size={24}
+            iconColor={theme.colors.onSurfaceVariant}
+            style={styles.controlButton}
+          />
         </View>
       </View>
     </Surface>
@@ -75,60 +96,61 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    padding: 20,
-    paddingTop: 40,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
   playerContainer: {
     flex: 1,
-    padding: 20,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   artworkContainer: {
-    alignItems: 'center',
     marginBottom: 32,
   },
   artwork: {
     width: 280,
     height: 280,
-    borderRadius: 12,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    elevation: 4,
   },
   trackInfo: {
     alignItems: 'center',
     marginBottom: 32,
   },
   trackTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 8,
   },
   artistName: {
-    opacity: 0.7,
     fontSize: 16,
   },
   progressContainer: {
+    width: '100%',
     marginBottom: 32,
+  },
+  slider: {
+    width: '100%',
+    height: 40,
   },
   timeContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
+    paddingHorizontal: 4,
   },
   timeText: {
-    fontSize: 14,
+    fontSize: 12,
   },
   controls: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  controlButton: {
+    marginHorizontal: 8,
   },
   playButton: {
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
     marginHorizontal: 16,
+    elevation: 4,
   },
 });

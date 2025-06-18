@@ -1,17 +1,17 @@
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { IconButton, Surface, Text, useTheme } from 'react-native-paper';
+import { Card, IconButton, Surface, Text, useTheme } from 'react-native-paper';
 
 const recentTracks = [
-  { id: '1', title: 'Recent Track 1', artist: 'Artist 1' },
-  { id: '2', title: 'Recent Track 2', artist: 'Artist 2' },
-  { id: '3', title: 'Recent Track 3', artist: 'Artist 3' },
+  { id: '1', title: 'Recent Track 1', artist: 'Artist 1', cover: 'https://picsum.photos/200' },
+  { id: '2', title: 'Recent Track 2', artist: 'Artist 2', cover: 'https://picsum.photos/201' },
+  { id: '3', title: 'Recent Track 3', artist: 'Artist 3', cover: 'https://picsum.photos/202' },
 ];
 
 const recommendedTracks = [
-  { id: '1', title: 'Recommended Track 1', artist: 'Artist 1' },
-  { id: '2', title: 'Recommended Track 2', artist: 'Artist 2' },
-  { id: '3', title: 'Recommended Track 3', artist: 'Artist 3' },
+  { id: '1', title: 'Recommended Track 1', artist: 'Artist 1', cover: 'https://picsum.photos/203' },
+  { id: '2', title: 'Recommended Track 2', artist: 'Artist 2', cover: 'https://picsum.photos/204' },
+  { id: '3', title: 'Recommended Track 3', artist: 'Artist 3', cover: 'https://picsum.photos/205' },
 ];
 
 export default function HomeScreen() {
@@ -19,7 +19,7 @@ export default function HomeScreen() {
 
   return (
     <Surface style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <ScrollView>
+      <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.title}>Welcome Back!</Text>
           <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
@@ -32,20 +32,25 @@ export default function HomeScreen() {
             <IconButton icon="clock" size={24} iconColor={theme.colors.primary} />
             <Text style={styles.sectionTitle}>Recently Played</Text>
           </View>
-          {recentTracks.map(track => (
-            <Surface
-              key={track.id}
-              style={[styles.trackItem, { backgroundColor: theme.colors.surfaceVariant }]}
-            >
-              <IconButton icon="music" size={24} iconColor={theme.colors.primary} />
-              <View style={styles.trackInfo}>
-                <Text style={styles.trackTitle}>{track.title}</Text>
-                <Text style={[styles.trackArtist, { color: theme.colors.onSurfaceVariant }]}>
-                  {track.artist}
-                </Text>
-              </View>
-            </Surface>
-          ))}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tracksScroll}>
+            {recentTracks.map(track => (
+              <Card
+                key={track.id}
+                style={[styles.trackCard, { backgroundColor: theme.colors.surfaceVariant }]}
+                onPress={() => {}}
+              >
+                <Card.Cover source={{ uri: track.cover }} style={styles.trackCover} />
+                <Card.Content style={styles.trackContent}>
+                  <Text style={styles.trackTitle} numberOfLines={1}>
+                    {track.title}
+                  </Text>
+                  <Text style={[styles.trackArtist, { color: theme.colors.onSurfaceVariant }]} numberOfLines={1}>
+                    {track.artist}
+                  </Text>
+                </Card.Content>
+              </Card>
+            ))}
+          </ScrollView>
         </View>
 
         <View style={styles.section}>
@@ -53,20 +58,25 @@ export default function HomeScreen() {
             <IconButton icon="star" size={24} iconColor={theme.colors.primary} />
             <Text style={styles.sectionTitle}>Recommended for You</Text>
           </View>
-          {recommendedTracks.map(track => (
-            <Surface
-              key={track.id}
-              style={[styles.trackItem, { backgroundColor: theme.colors.surfaceVariant }]}
-            >
-              <IconButton icon="music" size={24} iconColor={theme.colors.primary} />
-              <View style={styles.trackInfo}>
-                <Text style={styles.trackTitle}>{track.title}</Text>
-                <Text style={[styles.trackArtist, { color: theme.colors.onSurfaceVariant }]}>
-                  {track.artist}
-                </Text>
-              </View>
-            </Surface>
-          ))}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tracksScroll}>
+            {recommendedTracks.map(track => (
+              <Card
+                key={track.id}
+                style={[styles.trackCard, { backgroundColor: theme.colors.surfaceVariant }]}
+                onPress={() => {}}
+              >
+                <Card.Cover source={{ uri: track.cover }} style={styles.trackCover} />
+                <Card.Content style={styles.trackContent}>
+                  <Text style={styles.trackTitle} numberOfLines={1}>
+                    {track.title}
+                  </Text>
+                  <Text style={[styles.trackArtist, { color: theme.colors.onSurfaceVariant }]} numberOfLines={1}>
+                    {track.artist}
+                  </Text>
+                </Card.Content>
+              </Card>
+            ))}
+          </ScrollView>
         </View>
       </ScrollView>
     </Surface>
@@ -79,45 +89,53 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    paddingTop: 40,
+    paddingTop: 24,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
+    marginBottom: 8,
   },
   subtitle: {
-    marginTop: 8,
     fontSize: 16,
   },
   section: {
-    padding: 20,
+    marginBottom: 24,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    paddingHorizontal: 20,
+    marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     marginLeft: 8,
   },
-  trackItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    marginBottom: 8,
-    borderRadius: 8,
+  tracksScroll: {
+    paddingLeft: 20,
   },
-  trackInfo: {
-    marginLeft: 12,
-    flex: 1,
+  trackCard: {
+    width: 160,
+    marginRight: 12,
+    borderRadius: 12,
+    elevation: 2,
+  },
+  trackCover: {
+    height: 160,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  trackContent: {
+    padding: 12,
   },
   trackTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
+    marginBottom: 4,
   },
   trackArtist: {
-    fontSize: 14,
+    fontSize: 12,
   },
 });
