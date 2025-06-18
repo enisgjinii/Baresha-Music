@@ -1,6 +1,7 @@
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Card, Divider, IconButton, List, Surface, Text, useTheme } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const sampleFavorites = [
   {
@@ -37,37 +38,39 @@ export default function FavoritesScreen() {
   const theme = useTheme();
 
   return (
-    <Surface style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <ScrollView>
-        <Surface style={styles.header} elevation={0}>
-          <Text style={styles.title}>Favorites</Text>
-        </Surface>
+    <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right', 'bottom']}>
+      <Surface style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <ScrollView>
+          <Surface style={styles.header} elevation={0}>
+            <Text style={styles.title}>Favorites</Text>
+          </Surface>
 
-        <Card style={styles.listCard}>
-          {sampleFavorites.map((track, index) => (
-            <React.Fragment key={track.id}>
-              <List.Item
-                title={track.title}
-                description={track.artist}
-                left={props => (
-                  <List.Image {...props} source={{ uri: track.cover }} style={styles.cover} />
-                )}
-                right={props => (
-                  <View style={styles.rightContent}>
-                    <Text style={[styles.duration, { color: theme.colors.onSurfaceVariant }]}>
-                      {track.duration}
-                    </Text>
-                    <IconButton icon="heart" size={24} iconColor={theme.colors.primary} />
-                  </View>
-                )}
-                onPress={() => {}}
-              />
-              {index < sampleFavorites.length - 1 && <Divider />}
-            </React.Fragment>
-          ))}
-        </Card>
-      </ScrollView>
-    </Surface>
+          <Card style={styles.listCard}>
+            {sampleFavorites.map((track, index) => (
+              <React.Fragment key={track.id}>
+                <List.Item
+                  title={track.title}
+                  description={track.artist}
+                  left={props => (
+                    <List.Image {...props} source={{ uri: track.cover }} style={styles.cover} />
+                  )}
+                  right={props => (
+                    <View style={styles.rightContent}>
+                      <Text style={[styles.duration, { color: theme.colors.onSurfaceVariant }]}>
+                        {track.duration}
+                      </Text>
+                      <IconButton icon="heart" size={24} iconColor={theme.colors.primary} />
+                    </View>
+                  )}
+                  onPress={() => {}}
+                />
+                {index < sampleFavorites.length - 1 && <Divider />}
+              </React.Fragment>
+            ))}
+          </Card>
+        </ScrollView>
+      </Surface>
+    </SafeAreaView>
   );
 }
 

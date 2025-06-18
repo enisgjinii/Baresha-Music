@@ -13,6 +13,18 @@ export function HapticTab(props: BottomTabBarButtonProps) {
         }
         props.onPressIn?.(ev);
       }}
+      onPress={ev => {
+        if (process.env.EXPO_OS === 'ios') {
+          Haptics.selectionAsync();
+        }
+        props.onPress?.(ev);
+      }}
+      onLongPress={ev => {
+        if (process.env.EXPO_OS === 'ios') {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        }
+        props.onLongPress?.(ev);
+      }}
     />
   );
 }

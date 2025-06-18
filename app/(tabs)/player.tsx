@@ -1,94 +1,568 @@
+import { usePlayerStore } from '@/store/usePlayerStore';
 import Slider from '@react-native-community/slider';
-import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { IconButton, Surface, Text, useTheme } from 'react-native-paper';
+import { Audio } from 'expo-av';
+import * as MediaLibrary from 'expo-media-library';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Animated, Dimensions, FlatList, Image, StyleSheet, View } from 'react-native';
+import { Button, Card, Dialog, IconButton, List, Menu, Portal, Searchbar, Surface, Text, useTheme } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { IconSymbol } from '@/components/ui/IconSymbol';
+const { width } = Dimensions.get('window');
+const fadeAnim = new Animated.Value(1);
 
-function formatTime(seconds: number) {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
+interface LocalTrack {
+  id: string;
+  title: string;
+  artist: string;
+  duration: number;
+  uri: string;
+  artwork?: string;
+}
+
+interface Playlist {
+  id: string;
+  name: string;
+  tracks: LocalTrack[];
+}
+
+function formatTime(milliseconds: number) {
+  const totalSeconds = Math.floor(milliseconds / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
 export default function PlayerScreen() {
   const theme = useTheme();
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration] = useState(180); // 3 minutes
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [tracks, setTracks] = useState<LocalTrack[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [showPlaylistDialog, setShowPlaylistDialog] = useState(false);
+  const [selectedTrack, setSelectedTrack] = useState<LocalTrack | null>(null);
+  const [showEqualizer, setShowEqualizer] = useState(false);
+  const [showSleepTimer, setShowSleepTimer] = useState(false);
+  const [sleepTimerMinutes, setSleepTimerMinutes] = useState(30);
+  const [showLyrics, setShowLyrics] = useState(false);
+  const [lyrics, setLyrics] = useState<string>('');
 
-  return (
-    <Surface style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={styles.playerContainer}>
-        <View style={styles.artworkContainer}>
-          <Surface style={[styles.artwork, { backgroundColor: theme.colors.surfaceVariant }]}>
-            <IconSymbol name="music.note" size={80} color={theme.colors.primary} />
-          </Surface>
+  const {
+    sound,
+    currentTrack,
+    isPlaying,
+    duration,
+    position,
+    isShuffle,
+    repeatMode,
+    setSound,
+    setCurrentTrack,
+    setIsPlaying,
+    setDuration,
+    setPosition,
+    setIsShuffle,
+    setRepeatMode,
+    reset,
+  } = usePlayerStore();
+
+  useEffect(() => {
+    setupAudio();
+    requestPermissions();
+    return () => {
+      cleanupAudio();
+    };
+  }, []);
+
+  const setupAudio = async () => {
+    try {
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+        shouldDuckAndroid: true,
+        interruptionModeIOS: 1,
+        interruptionModeAndroid: 1,
+      });
+    } catch (error) {
+      console.error('Error setting up audio:', error);
+    }
+  };
+
+  const cleanupAudio = async () => {
+    if (sound) {
+      await sound.unloadAsync();
+      reset();
+    }
+  };
+
+  const requestPermissions = async () => {
+    const { status } = await MediaLibrary.requestPermissionsAsync();
+    if (status === 'granted') {
+      loadTracks();
+    }
+  };
+
+  const loadTracks = async () => {
+    try {
+      const { assets } = await MediaLibrary.getAssetsAsync({
+        mediaType: 'audio',
+        first: 100,
+      });
+
+      const tracksWithInfo = await Promise.all(
+        assets.map(async (asset) => {
+          const info = await MediaLibrary.getAssetInfoAsync(asset);
+          return {
+            id: asset.id,
+            title: asset.filename.replace(/\.[^/.]+$/, ''),
+            artist: 'Unknown Artist',
+            duration: asset.duration || 0,
+            uri: asset.uri,
+            artwork: info.uri,
+          };
+        })
+      );
+
+      setTracks(tracksWithInfo);
+      if (tracksWithInfo.length > 0 && !currentTrack) {
+        setCurrentTrack(tracksWithInfo[0]);
+      }
+    } catch (error) {
+      console.error('Error loading tracks:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const cleanupSound = async () => {
+    if (sound) {
+      try {
+        await sound.unloadAsync();
+      } catch (error) {
+        console.error('Error unloading sound:', error);
+      }
+    }
+  };
+
+  const loadAndPlayTrack = async (track: LocalTrack) => {
+    try {
+      // Fade out current track
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start(async () => {
+        try {
+          // Unload previous sound if it exists
+          if (sound) {
+            await sound.unloadAsync();
+          }
+
+          const { sound: newSound } = await Audio.Sound.createAsync(
+            { uri: track.uri },
+            { shouldPlay: false },
+            onPlaybackStatusUpdate
+          );
+
+          // Wait for the sound to be loaded
+          const status = await newSound.getStatusAsync();
+          if (!status.isLoaded) {
+            console.log('Waiting for sound to load...');
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+
+          setSound(newSound);
+          setCurrentTrack(track);
+
+          // Fade in new track
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }).start();
+
+          await newSound.playAsync();
+          setIsPlaying(true);
+        } catch (error) {
+          console.error('Error in loadAndPlayTrack:', error);
+          // Reset animation if there's an error
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }).start();
+        }
+      });
+    } catch (error) {
+      console.error('Error playing track:', error);
+    }
+  };
+
+  const onPlaybackStatusUpdate = useCallback((status: any) => {
+    if (status.isLoaded) {
+      setDuration(status.durationMillis);
+      setPosition(status.positionMillis);
+      setIsPlaying(status.isPlaying);
+
+      if (status.didJustFinish) {
+        if (repeatMode === 'one') {
+          sound?.replayAsync();
+        } else if (repeatMode === 'all') {
+          const currentIndex = tracks.findIndex(t => t.id === currentTrack?.id);
+          const nextIndex = (currentIndex + 1) % tracks.length;
+          loadAndPlayTrack(tracks[nextIndex]);
+        } else {
+          const currentIndex = tracks.findIndex(t => t.id === currentTrack?.id);
+          const nextIndex = (currentIndex + 1) % tracks.length;
+          loadAndPlayTrack(tracks[nextIndex]);
+        }
+      }
+    }
+  }, [repeatMode, sound, currentTrack, tracks]);
+
+  const togglePlayback = async () => {
+    if (!sound) return;
+
+    try {
+      if (isPlaying) {
+        await sound.pauseAsync();
+        setIsPlaying(false);
+      } else {
+        await sound.playAsync();
+        setIsPlaying(true);
+      }
+    } catch (error) {
+      console.error('Error toggling playback:', error);
+    }
+  };
+
+  const playNext = useCallback(async () => {
+    if (!currentTrack) return;
+    const currentIndex = tracks.findIndex(t => t.id === currentTrack.id);
+    const nextIndex = (currentIndex + 1) % tracks.length;
+    await cleanupSound();
+    await loadAndPlayTrack(tracks[nextIndex]);
+  }, [currentTrack, tracks]);
+
+  const playPrevious = useCallback(async () => {
+    if (!currentTrack) return;
+    const currentIndex = tracks.findIndex(t => t.id === currentTrack.id);
+    const prevIndex = (currentIndex - 1 + tracks.length) % tracks.length;
+    await cleanupSound();
+    await loadAndPlayTrack(tracks[prevIndex]);
+  }, [currentTrack, tracks]);
+
+  const onSliderValueChange = async (value: number) => {
+    if (sound) {
+      try {
+        const status = await sound.getStatusAsync();
+        if (!status.isLoaded) {
+          console.log('Sound not loaded yet, waiting...');
+          return;
+        }
+
+        const wasPlaying = isPlaying;
+        if (wasPlaying) {
+          await sound.pauseAsync();
+        }
+        await sound.setPositionAsync(value);
+        if (wasPlaying) {
+          await sound.playAsync();
+        }
+      } catch (error) {
+        console.error('Error seeking:', error);
+      }
+    }
+  };
+
+  const createPlaylist = (name: string) => {
+    const newPlaylist: Playlist = {
+      id: Date.now().toString(),
+      name,
+      tracks: [],
+    };
+    setPlaylists([...playlists, newPlaylist]);
+  };
+
+  const addToPlaylist = (playlistId: string, track: LocalTrack) => {
+    setPlaylists(playlists.map(playlist => {
+      if (playlist.id === playlistId) {
+        return {
+          ...playlist,
+          tracks: [...playlist.tracks, track],
+        };
+      }
+      return playlist;
+    }));
+  };
+
+  const startSleepTimer = () => {
+    const timer = setTimeout(() => {
+      if (sound) {
+        sound.pauseAsync();
+      }
+    }, sleepTimerMinutes * 60 * 1000);
+    return () => clearTimeout(timer);
+  };
+
+  const fetchLyrics = async (track: LocalTrack) => {
+    // Implement lyrics fetching logic here
+    setLyrics('Lyrics not available');
+  };
+
+  const filteredTracks = tracks.filter(track =>
+    track.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const renderTrackItem = ({ item }: { item: LocalTrack }) => (
+    <List.Item
+      title={item.title}
+      description={item.artist}
+      left={props => (
+        <Image
+          source={item.artwork ? { uri: item.artwork } : require('../../assets/images/icon.png')}
+          style={styles.trackArtwork}
+        />
+      )}
+      right={props => (
+        <View style={styles.trackActions}>
+          <Text style={[styles.duration, { color: theme.colors.onSurfaceVariant }]}>
+            {formatTime(item.duration)}
+          </Text>
+          <Menu
+            visible={selectedTrack?.id === item.id}
+            onDismiss={() => setSelectedTrack(null)}
+            anchor={
+              <IconButton
+                icon="dots-vertical"
+                onPress={() => setSelectedTrack(item)}
+              />
+            }
+          >
+            <Menu.Item
+              onPress={() => {
+                setSelectedTrack(null);
+                setShowPlaylistDialog(true);
+              }}
+              title="Add to Playlist"
+            />
+            <Menu.Item
+              onPress={() => {
+                setSelectedTrack(null);
+                fetchLyrics(item);
+                setShowLyrics(true);
+              }}
+              title="Show Lyrics"
+            />
+          </Menu>
         </View>
+      )}
+      onPress={() => loadAndPlayTrack(item)}
+      style={[
+        styles.trackItem,
+        currentTrack?.id === item.id && { backgroundColor: theme.colors.surfaceVariant }
+      ]}
+    />
+  );
 
-        <View style={styles.trackInfo}>
-          <Text style={styles.trackTitle}>Sample Track</Text>
-          <Text style={[styles.artistName, { color: theme.colors.onSurfaceVariant }]}>
-            Sample Artist
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.onSurfaceVariant }]}>
+            Loading your music...
           </Text>
         </View>
+      </SafeAreaView>
+    );
+  }
 
-        <View style={styles.progressContainer}>
-          <Slider
-            value={currentTime}
-            minimumValue={0}
-            maximumValue={duration}
-            onValueChange={setCurrentTime}
-            minimumTrackTintColor={theme.colors.primary}
-            maximumTrackTintColor={theme.colors.surfaceVariant}
-            thumbTintColor={theme.colors.primary}
-            style={styles.slider}
+  return (
+    <SafeAreaView style={styles.container}>
+      <Surface style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={styles.searchContainer}>
+          <Searchbar
+            placeholder="Search your music..."
+            onChangeText={setSearchQuery}
+            value={searchQuery}
+            style={styles.searchBar}
+            iconColor={theme.colors.primary}
           />
-          <View style={styles.timeContainer}>
-            <Text style={[styles.timeText, { color: theme.colors.onSurfaceVariant }]}>
-              {formatTime(currentTime)}
-            </Text>
-            <Text style={[styles.timeText, { color: theme.colors.onSurfaceVariant }]}>
-              {formatTime(duration)}
-            </Text>
-          </View>
         </View>
 
-        <View style={styles.controls}>
-          <IconButton
-            icon="shuffle"
-            size={24}
-            iconColor={theme.colors.onSurfaceVariant}
-            style={styles.controlButton}
-          />
-          <IconButton
-            icon="skip-previous"
-            size={32}
-            iconColor={theme.colors.primary}
-            style={styles.controlButton}
-          />
-          <IconButton
-            icon={isPlaying ? 'pause' : 'play'}
-            size={48}
-            iconColor={theme.colors.primary}
-            style={[styles.playButton, { backgroundColor: theme.colors.primaryContainer }]}
-            onPress={() => setIsPlaying(!isPlaying)}
-          />
-          <IconButton
-            icon="skip-next"
-            size={32}
-            iconColor={theme.colors.primary}
-            style={styles.controlButton}
-          />
-          <IconButton
-            icon="repeat"
-            size={24}
-            iconColor={theme.colors.onSurfaceVariant}
-            style={styles.controlButton}
-          />
-        </View>
-      </View>
-    </Surface>
+        {currentTrack && (
+          <Animated.View style={{ opacity: fadeAnim }}>
+            <Card style={[styles.nowPlayingCard, { backgroundColor: theme.colors.surfaceVariant }]}>
+              <Card.Cover
+                source={
+                  currentTrack.artwork
+                    ? { uri: currentTrack.artwork }
+                    : require('../../assets/images/icon.png')
+                }
+                style={styles.currentArtwork}
+              />
+              <Card.Content style={styles.nowPlayingInfo}>
+                <Text style={styles.currentTitle} numberOfLines={1}>
+                  {currentTrack.title}
+                </Text>
+                <Text style={[styles.currentArtist, { color: theme.colors.onSurfaceVariant }]}>
+                  {currentTrack.artist}
+                </Text>
+              </Card.Content>
+
+              <View style={styles.progressContainer}>
+                <Slider
+                  style={styles.progressBar}
+                  minimumValue={0}
+                  maximumValue={duration}
+                  value={position}
+                  onValueChange={onSliderValueChange}
+                  minimumTrackTintColor={theme.colors.primary}
+                  maximumTrackTintColor={theme.colors.surfaceVariant}
+                  thumbTintColor={theme.colors.primary}
+                />
+                <View style={styles.timeContainer}>
+                  <Text style={[styles.timeText, { color: theme.colors.onSurfaceVariant }]}>
+                    {formatTime(position)}
+                  </Text>
+                  <Text style={[styles.timeText, { color: theme.colors.onSurfaceVariant }]}>
+                    {formatTime(duration)}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.controls}>
+                <IconButton
+                  icon={isShuffle ? 'shuffle-variant' : 'shuffle'}
+                  size={24}
+                  iconColor={isShuffle ? theme.colors.primary : theme.colors.onSurfaceVariant}
+                  onPress={() => setIsShuffle(!isShuffle)}
+                />
+                <IconButton
+                  icon="skip-previous"
+                  size={32}
+                  iconColor={theme.colors.primary}
+                  onPress={playPrevious}
+                />
+                <IconButton
+                  icon={isPlaying ? 'pause' : 'play'}
+                  size={48}
+                  iconColor={theme.colors.primary}
+                  onPress={togglePlayback}
+                />
+                <IconButton
+                  icon="skip-next"
+                  size={32}
+                  iconColor={theme.colors.primary}
+                  onPress={playNext}
+                />
+                <IconButton
+                  icon={repeatMode === 'all' ? 'repeat' : repeatMode === 'one' ? 'repeat-once' : 'repeat-off'}
+                  size={24}
+                  iconColor={repeatMode !== 'off' ? theme.colors.primary : theme.colors.onSurfaceVariant}
+                  onPress={() =>
+                    setRepeatMode(
+                      repeatMode === 'off'
+                        ? 'all'
+                        : repeatMode === 'all'
+                        ? 'one'
+                        : 'off'
+                    )
+                  }
+                />
+              </View>
+
+              <View style={styles.additionalControls}>
+                <IconButton
+                  icon="equalizer"
+                  size={24}
+                  iconColor={theme.colors.onSurfaceVariant}
+                  onPress={() => setShowEqualizer(true)}
+                />
+                <IconButton
+                  icon="timer"
+                  size={24}
+                  iconColor={theme.colors.onSurfaceVariant}
+                  onPress={() => setShowSleepTimer(true)}
+                />
+                <IconButton
+                  icon="format-list-bulleted"
+                  size={24}
+                  iconColor={theme.colors.onSurfaceVariant}
+                  onPress={() => setShowPlaylistDialog(true)}
+                />
+              </View>
+            </Card>
+          </Animated.View>
+        )}
+
+        <FlatList
+          data={filteredTracks}
+          renderItem={renderTrackItem}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.trackList}
+          showsVerticalScrollIndicator={false}
+        />
+
+        <Portal>
+          <Dialog visible={showPlaylistDialog} onDismiss={() => setShowPlaylistDialog(false)}>
+            <Dialog.Title>Add to Playlist</Dialog.Title>
+            <Dialog.Content>
+              {playlists.map(playlist => (
+                <List.Item
+                  key={playlist.id}
+                  title={playlist.name}
+                  onPress={() => {
+                    if (selectedTrack) {
+                      addToPlaylist(playlist.id, selectedTrack);
+                    }
+                    setShowPlaylistDialog(false);
+                  }}
+                />
+              ))}
+              <Button
+                mode="contained"
+                onPress={() => {
+                  createPlaylist('New Playlist');
+                }}
+                style={styles.createPlaylistButton}
+              >
+                Create New Playlist
+              </Button>
+            </Dialog.Content>
+          </Dialog>
+
+          <Dialog visible={showSleepTimer} onDismiss={() => setShowSleepTimer(false)}>
+            <Dialog.Title>Sleep Timer</Dialog.Title>
+            <Dialog.Content>
+              <Text>Set timer (minutes):</Text>
+              <Slider
+                style={styles.sleepTimerSlider}
+                minimumValue={5}
+                maximumValue={120}
+                step={5}
+                value={sleepTimerMinutes}
+                onValueChange={setSleepTimerMinutes}
+              />
+              <Text>{sleepTimerMinutes} minutes</Text>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={() => setShowSleepTimer(false)}>Cancel</Button>
+              <Button onPress={() => {
+                startSleepTimer();
+                setShowSleepTimer(false);
+              }}>Start</Button>
+            </Dialog.Actions>
+          </Dialog>
+
+          <Dialog visible={showLyrics} onDismiss={() => setShowLyrics(false)}>
+            <Dialog.Title>Lyrics</Dialog.Title>
+            <Dialog.Content>
+              <Text>{lyrics}</Text>
+            </Dialog.Content>
+          </Dialog>
+        </Portal>
+      </Surface>
+    </SafeAreaView>
   );
 }
 
@@ -96,40 +570,49 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  playerContainer: {
+  loadingContainer: {
     flex: 1,
-    padding: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  artworkContainer: {
-    marginBottom: 32,
-  },
-  artwork: {
-    width: 280,
-    height: 280,
-    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+  },
+  searchContainer: {
+    padding: 16,
+  },
+  searchBar: {
+    elevation: 2,
+    borderRadius: 12,
+  },
+  nowPlayingCard: {
+    margin: 16,
+    borderRadius: 16,
     elevation: 4,
   },
-  trackInfo: {
-    alignItems: 'center',
-    marginBottom: 32,
+  currentArtwork: {
+    height: width * 0.8,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
   },
-  trackTitle: {
+  nowPlayingInfo: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  currentTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 4,
   },
-  artistName: {
+  currentArtist: {
     fontSize: 16,
   },
   progressContainer: {
-    width: '100%',
-    marginBottom: 32,
+    paddingHorizontal: 16,
+    marginBottom: 16,
   },
-  slider: {
+  progressBar: {
     width: '100%',
     height: 40,
   },
@@ -145,12 +628,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  controlButton: {
-    marginHorizontal: 8,
+    paddingBottom: 16,
   },
   playButton: {
     marginHorizontal: 16,
     elevation: 4,
+  },
+  additionalControls: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    paddingBottom: 16,
+  },
+  trackList: {
+    padding: 16,
+  },
+  trackItem: {
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  trackArtwork: {
+    width: 48,
+    height: 48,
+    borderRadius: 4,
+  },
+  trackActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  duration: {
+    fontSize: 12,
+    marginRight: 8,
+  },
+  createPlaylistButton: {
+    marginTop: 16,
+  },
+  sleepTimerSlider: {
+    width: '100%',
+    height: 40,
   },
 });

@@ -1,6 +1,8 @@
+import { useNavigation } from '@react-navigation/native';
 import React from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { Card, FAB, IconButton, Surface, Text, useTheme } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const samplePlaylists = [
   { id: '1', name: 'My Favorites', songCount: 12, cover: 'https://example.com/cover1.jpg' },
@@ -11,46 +13,49 @@ const samplePlaylists = [
 
 export default function PlaylistsScreen() {
   const theme = useTheme();
+  const navigation = useNavigation();
 
   return (
-    <Surface style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <ScrollView>
-        <Surface style={styles.header} elevation={0}>
-          <Text style={styles.title}>Playlists</Text>
-        </Surface>
+    <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right', 'bottom']}>
+      <Surface style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <ScrollView>
+          <Surface style={styles.header} elevation={0}>
+            <Text style={styles.title}>Playlists</Text>
+          </Surface>
 
-        <Surface style={styles.grid} elevation={0}>
-          {samplePlaylists.map(playlist => (
-            <Card key={playlist.id} style={styles.playlistCard}>
-              <Card.Cover source={{ uri: playlist.cover }} style={styles.cover} />
-              <Card.Content style={styles.playlistInfo}>
-                <Text style={styles.playlistName} numberOfLines={1}>
-                  {playlist.name}
-                </Text>
-                <Text style={[styles.songCount, { color: theme.colors.onSurfaceVariant }]}>
-                  {playlist.songCount} songs
-                </Text>
-              </Card.Content>
-              <Card.Actions>
-                <IconButton icon="play" size={24} iconColor={theme.colors.primary} />
-                <IconButton
-                  icon="dots-vertical"
-                  size={24}
-                  iconColor={theme.colors.onSurfaceVariant}
-                />
-              </Card.Actions>
-            </Card>
-          ))}
-        </Surface>
-      </ScrollView>
+          <Surface style={styles.grid} elevation={0}>
+            {samplePlaylists.map(playlist => (
+              <Card key={playlist.id} style={styles.playlistCard}>
+                <Card.Cover source={{ uri: playlist.cover }} style={styles.cover} />
+                <Card.Content style={styles.playlistInfo}>
+                  <Text style={styles.playlistName} numberOfLines={1}>
+                    {playlist.name}
+                  </Text>
+                  <Text style={[styles.songCount, { color: theme.colors.onSurfaceVariant }]}>
+                    {playlist.songCount} songs
+                  </Text>
+                </Card.Content>
+                <Card.Actions>
+                  <IconButton icon="play" size={24} iconColor={theme.colors.primary} />
+                  <IconButton
+                    icon="dots-vertical"
+                    size={24}
+                    iconColor={theme.colors.onSurfaceVariant}
+                  />
+                </Card.Actions>
+              </Card>
+            ))}
+          </Surface>
+        </ScrollView>
 
-      <FAB
-        icon="plus"
-        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-        onPress={() => {}}
-        color={theme.colors.onPrimary}
-      />
-    </Surface>
+        <FAB
+          icon="plus"
+          style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+          onPress={() => {}}
+          color={theme.colors.onPrimary}
+        />
+      </Surface>
+    </SafeAreaView>
   );
 }
 
