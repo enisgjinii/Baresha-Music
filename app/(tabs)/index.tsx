@@ -32,8 +32,11 @@ export default function HomeScreen() {
             <IconButton icon="clock" size={24} iconColor={theme.colors.primary} />
             <Text style={styles.sectionTitle}>Recently Played</Text>
           </View>
-          {recentTracks.map((track) => (
-            <Surface key={track.id} style={[styles.trackItem, { backgroundColor: theme.colors.surfaceVariant }]}>
+          {recentTracks.map(track => (
+            <Surface
+              key={track.id}
+              style={[styles.trackItem, { backgroundColor: theme.colors.surfaceVariant }]}
+            >
               <IconButton icon="music" size={24} iconColor={theme.colors.primary} />
               <View style={styles.trackInfo}>
                 <Text style={styles.trackTitle}>{track.title}</Text>
@@ -50,8 +53,11 @@ export default function HomeScreen() {
             <IconButton icon="star" size={24} iconColor={theme.colors.primary} />
             <Text style={styles.sectionTitle}>Recommended for You</Text>
           </View>
-          {recommendedTracks.map((track) => (
-            <Surface key={track.id} style={[styles.trackItem, { backgroundColor: theme.colors.surfaceVariant }]}>
+          {recommendedTracks.map(track => (
+            <Surface
+              key={track.id}
+              style={[styles.trackItem, { backgroundColor: theme.colors.surfaceVariant }]}
+            >
               <IconButton icon="music" size={24} iconColor={theme.colors.primary} />
               <View style={styles.trackInfo}>
                 <Text style={styles.trackTitle}>{track.title}</Text>

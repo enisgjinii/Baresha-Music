@@ -22,7 +22,7 @@ const MAPPING = {
   'music.note': 'music-note',
   'list.bullet': 'list',
   'heart.fill': 'favorite',
-  'gear': 'settings',
+  gear: 'settings',
 } as IconMapping;
 
 /**

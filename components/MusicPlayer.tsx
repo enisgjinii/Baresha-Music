@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { Audio } from 'expo-av';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface Track {
@@ -25,16 +25,14 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ tracks }) => {
 
   const currentTrack = tracks[currentTrackIndex];
 
-  useEffect(() => {
-    setupAudio();
-    return () => {
-      if (audioPlayer) {
-        audioPlayer.unloadAsync();
-      }
-    };
-  }, [currentTrackIndex]);
+  const onPlaybackStatusUpdate = useCallback((status: any) => {
+    if (status.isLoaded) {
+      setPosition(status.positionMillis);
+      setIsPlaying(status.isPlaying);
+    }
+  }, []);
 
-  const setupAudio = async () => {
+  const setupAudio = useCallback(async () => {
     try {
       if (audioPlayer) {
         await audioPlayer.unloadAsync();
@@ -54,14 +52,16 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ tracks }) => {
     } catch (error) {
       console.error('Error loading audio:', error);
     }
-  };
+  }, [audioPlayer, currentTrack.url, onPlaybackStatusUpdate]);
 
-  const onPlaybackStatusUpdate = (status: any) => {
-    if (status.isLoaded) {
-      setPosition(status.positionMillis);
-      setIsPlaying(status.isPlaying);
-    }
-  };
+  useEffect(() => {
+    setupAudio();
+    return () => {
+      if (audioPlayer) {
+        audioPlayer.unloadAsync();
+      }
+    };
+  }, [currentTrackIndex, audioPlayer, setupAudio]);
 
   const togglePlayback = async () => {
     if (!audioPlayer) return;
@@ -74,11 +74,11 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ tracks }) => {
   };
 
   const playNext = () => {
-    setCurrentTrackIndex((prev) => (prev + 1) % tracks.length);
+    setCurrentTrackIndex(prev => (prev + 1) % tracks.length);
   };
 
   const playPrevious = () => {
-    setCurrentTrackIndex((prev) => (prev - 1 + tracks.length) % tracks.length);
+    setCurrentTrackIndex(prev => (prev - 1 + tracks.length) % tracks.length);
   };
 
   const onSliderValueChange = async (value: number) => {
@@ -91,10 +91,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ tracks }) => {
     <View style={styles.container}>
       <View style={styles.artworkContainer}>
         {currentTrack.artwork ? (
-          <Image
-            source={{ uri: currentTrack.artwork }}
-            style={styles.artwork}
-          />
+          <Image source={{ uri: currentTrack.artwork }} style={styles.artwork} />
         ) : (
           <View style={styles.placeholderArtwork}>
             <Ionicons name="musical-notes" size={40} color="#666" />
@@ -119,12 +116,8 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ tracks }) => {
           thumbTintColor="#1DB954"
         />
         <View style={styles.timeContainer}>
-          <Text style={styles.timeText}>
-            {formatTime(position)}
-          </Text>
-          <Text style={styles.timeText}>
-            {formatTime(duration)}
-          </Text>
+          <Text style={styles.timeText}>{formatTime(position)}</Text>
+          <Text style={styles.timeText}>{formatTime(duration)}</Text>
         </View>
       </View>
 
@@ -134,11 +127,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ tracks }) => {
         </TouchableOpacity>
 
         <TouchableOpacity onPress={togglePlayback} style={styles.playButton}>
-          <Ionicons
-            name={isPlaying ? 'pause' : 'play'}
-            size={32}
-            color="#fff"
-          />
+          <Ionicons name={isPlaying ? 'pause' : 'play'} size={32} color="#fff" />
         </TouchableOpacity>
 
         <TouchableOpacity onPress={playNext} style={styles.controlButton}>
@@ -226,4 +215,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 20,
   },
-}); 
+});

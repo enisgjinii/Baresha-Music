@@ -20,7 +20,7 @@ export default function PlaylistsScreen() {
         </Surface>
 
         <Surface style={styles.grid} elevation={0}>
-          {samplePlaylists.map((playlist) => (
+          {samplePlaylists.map(playlist => (
             <Card key={playlist.id} style={styles.playlistCard}>
               <Card.Cover source={{ uri: playlist.cover }} style={styles.cover} />
               <Card.Content style={styles.playlistInfo}>
@@ -32,11 +32,7 @@ export default function PlaylistsScreen() {
                 </Text>
               </Card.Content>
               <Card.Actions>
-                <IconButton
-                  icon="play"
-                  size={24}
-                  iconColor={theme.colors.primary}
-                />
+                <IconButton icon="play" size={24} iconColor={theme.colors.primary} />
                 <IconButton
                   icon="dots-vertical"
                   size={24}
@@ -99,4 +95,4 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-}); 
+});

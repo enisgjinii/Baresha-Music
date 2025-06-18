@@ -20,7 +20,9 @@ export default function SettingsScreen() {
           <List.Item
             title="Dark Mode"
             titleStyle={styles.itemTitle}
-            left={props => <List.Icon {...props} icon="weather-night" color={theme.colors.primary} />}
+            left={props => (
+              <List.Icon {...props} icon="weather-night" color={theme.colors.primary} />
+            )}
             right={() => (
               <Switch
                 value={isDarkMode}
@@ -93,4 +95,4 @@ const styles = StyleSheet.create({
   itemTitle: {
     fontSize: 16,
   },
-}); 
+});

@@ -5,7 +5,7 @@ import { Surface, Text, useTheme } from 'react-native-paper';
 
 export default function NotFoundScreen() {
   const theme = useTheme();
-  
+
   return (
     <>
       <Stack.Screen options={{ title: 'Oops!' }} />

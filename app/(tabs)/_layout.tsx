@@ -41,7 +41,7 @@ export default function TabLayout() {
         drawerActiveBackgroundColor: theme.colors.primaryContainer,
         drawerInactiveBackgroundColor: 'transparent',
       }}
-      drawerContent={(props) => (
+      drawerContent={props => (
         <DrawerContentScrollView {...props}>
           <View style={styles.container}>
             <View style={styles.drawerContent}>
@@ -50,19 +50,24 @@ export default function TabLayout() {
                 const isFocused = props.state.index === index;
 
                 return (
-                  <View key={route.key} style={[
-                    styles.drawerItem,
-                    isFocused && { backgroundColor: theme.colors.primaryContainer }
-                  ]}>
-                    {options.drawerIcon?.({ 
+                  <View
+                    key={route.key}
+                    style={[
+                      styles.drawerItem,
+                      isFocused && { backgroundColor: theme.colors.primaryContainer },
+                    ]}
+                  >
+                    {options.drawerIcon?.({
                       color: isFocused ? theme.colors.primary : theme.colors.onSurfaceVariant,
                       size: 24,
-                      focused: isFocused
+                      focused: isFocused,
                     })}
-                    <Text style={[
-                      styles.drawerLabel,
-                      { color: isFocused ? theme.colors.primary : theme.colors.onSurfaceVariant }
-                    ]}>
+                    <Text
+                      style={[
+                        styles.drawerLabel,
+                        { color: isFocused ? theme.colors.primary : theme.colors.onSurfaceVariant },
+                      ]}
+                    >
                       {options.title}
                     </Text>
                   </View>
@@ -83,50 +88,81 @@ export default function TabLayout() {
             </View>
           </View>
         </DrawerContentScrollView>
-      )}>
+      )}
+    >
       <Drawer.Screen
         name="index"
         options={{
           title: 'Home',
-          drawerIcon: ({ color, size, focused }: { color: string; size: number; focused: boolean }) => (
-            <IconSymbol size={size} name="house.fill" color={color} />
-          ),
+          drawerIcon: ({
+            color,
+            size,
+            focused,
+          }: {
+            color: string;
+            size: number;
+            focused: boolean;
+          }) => <IconSymbol size={size} name="house.fill" color={color} />,
         }}
       />
       <Drawer.Screen
         name="player"
         options={{
           title: 'Music Player',
-          drawerIcon: ({ color, size, focused }: { color: string; size: number; focused: boolean }) => (
-            <IconSymbol size={size} name="music.note" color={color} />
-          ),
+          drawerIcon: ({
+            color,
+            size,
+            focused,
+          }: {
+            color: string;
+            size: number;
+            focused: boolean;
+          }) => <IconSymbol size={size} name="music.note" color={color} />,
         }}
       />
       <Drawer.Screen
         name="playlists"
         options={{
           title: 'Playlists',
-          drawerIcon: ({ color, size, focused }: { color: string; size: number; focused: boolean }) => (
-            <IconSymbol size={size} name="list.bullet" color={color} />
-          ),
+          drawerIcon: ({
+            color,
+            size,
+            focused,
+          }: {
+            color: string;
+            size: number;
+            focused: boolean;
+          }) => <IconSymbol size={size} name="list.bullet" color={color} />,
         }}
       />
       <Drawer.Screen
         name="favorites"
         options={{
           title: 'Favorites',
-          drawerIcon: ({ color, size, focused }: { color: string; size: number; focused: boolean }) => (
-            <IconSymbol size={size} name="heart.fill" color={color} />
-          ),
+          drawerIcon: ({
+            color,
+            size,
+            focused,
+          }: {
+            color: string;
+            size: number;
+            focused: boolean;
+          }) => <IconSymbol size={size} name="heart.fill" color={color} />,
         }}
       />
       <Drawer.Screen
         name="settings"
         options={{
           title: 'Settings',
-          drawerIcon: ({ color, size, focused }: { color: string; size: number; focused: boolean }) => (
-            <IconSymbol size={size} name="gear" color={color} />
-          ),
+          drawerIcon: ({
+            color,
+            size,
+            focused,
+          }: {
+            color: string;
+            size: number;
+            focused: boolean;
+          }) => <IconSymbol size={size} name="gear" color={color} />,
         }}
       />
     </Drawer>

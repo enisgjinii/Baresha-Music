@@ -3,27 +3,10 @@ import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { IconButton, Surface, Text, useTheme } from 'react-native-paper';
 
-const sampleTracks = [
-  {
-    id: '1',
-    title: 'Sample Track 1',
-    artist: 'Artist 1',
-    url: 'https://example.com/sample1.mp3',
-    artwork: 'https://example.com/artwork1.jpg',
-  },
-  {
-    id: '2',
-    title: 'Sample Track 2',
-    artist: 'Artist 2',
-    url: 'https://example.com/sample2.mp3',
-    artwork: 'https://example.com/artwork2.jpg',
-  },
-];
-
 export default function PlayerScreen() {
   const theme = useTheme();
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(180); // 3 minutes in seconds
+  const [duration] = useState(180); // 3 minutes in seconds
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -40,11 +23,7 @@ export default function PlayerScreen() {
       <View style={styles.playerContainer}>
         <View style={styles.artworkContainer}>
           <Surface style={[styles.artwork, { backgroundColor: theme.colors.surfaceVariant }]}>
-            <IconButton
-              icon="music"
-              size={40}
-              iconColor={theme.colors.primary}
-            />
+            <IconButton icon="music" size={40} iconColor={theme.colors.primary} />
           </Surface>
         </View>
 
@@ -76,32 +55,16 @@ export default function PlayerScreen() {
         </View>
 
         <View style={styles.controls}>
-          <IconButton
-            icon="shuffle"
-            size={24}
-            iconColor={theme.colors.onSurfaceVariant}
-          />
-          <IconButton
-            icon="skip-previous"
-            size={32}
-            iconColor={theme.colors.primary}
-          />
+          <IconButton icon="shuffle" size={24} iconColor={theme.colors.onSurfaceVariant} />
+          <IconButton icon="skip-previous" size={32} iconColor={theme.colors.primary} />
           <IconButton
             icon="play"
             size={48}
             iconColor={theme.colors.primary}
             style={styles.playButton}
           />
-          <IconButton
-            icon="skip-next"
-            size={32}
-            iconColor={theme.colors.primary}
-          />
-          <IconButton
-            icon="repeat"
-            size={24}
-            iconColor={theme.colors.onSurfaceVariant}
-          />
+          <IconButton icon="skip-next" size={32} iconColor={theme.colors.primary} />
+          <IconButton icon="repeat" size={24} iconColor={theme.colors.onSurfaceVariant} />
         </View>
       </View>
     </Surface>
@@ -168,4 +131,4 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
     marginHorizontal: 16,
   },
-}); 
+});

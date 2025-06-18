@@ -3,10 +3,34 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { Card, Divider, IconButton, List, Surface, Text, useTheme } from 'react-native-paper';
 
 const sampleFavorites = [
-  { id: '1', title: 'Favorite Song 1', artist: 'Artist 1', duration: '3:45', cover: 'https://example.com/cover1.jpg' },
-  { id: '2', title: 'Favorite Song 2', artist: 'Artist 2', duration: '4:20', cover: 'https://example.com/cover2.jpg' },
-  { id: '3', title: 'Favorite Song 3', artist: 'Artist 3', duration: '3:15', cover: 'https://example.com/cover3.jpg' },
-  { id: '4', title: 'Favorite Song 4', artist: 'Artist 4', duration: '5:10', cover: 'https://example.com/cover4.jpg' },
+  {
+    id: '1',
+    title: 'Favorite Song 1',
+    artist: 'Artist 1',
+    duration: '3:45',
+    cover: 'https://example.com/cover1.jpg',
+  },
+  {
+    id: '2',
+    title: 'Favorite Song 2',
+    artist: 'Artist 2',
+    duration: '4:20',
+    cover: 'https://example.com/cover2.jpg',
+  },
+  {
+    id: '3',
+    title: 'Favorite Song 3',
+    artist: 'Artist 3',
+    duration: '3:15',
+    cover: 'https://example.com/cover3.jpg',
+  },
+  {
+    id: '4',
+    title: 'Favorite Song 4',
+    artist: 'Artist 4',
+    duration: '5:10',
+    cover: 'https://example.com/cover4.jpg',
+  },
 ];
 
 export default function FavoritesScreen() {
@@ -26,22 +50,14 @@ export default function FavoritesScreen() {
                 title={track.title}
                 description={track.artist}
                 left={props => (
-                  <List.Image
-                    {...props}
-                    source={{ uri: track.cover }}
-                    style={styles.cover}
-                  />
+                  <List.Image {...props} source={{ uri: track.cover }} style={styles.cover} />
                 )}
                 right={props => (
                   <View style={styles.rightContent}>
                     <Text style={[styles.duration, { color: theme.colors.onSurfaceVariant }]}>
                       {track.duration}
                     </Text>
-                    <IconButton
-                      icon="heart"
-                      size={24}
-                      iconColor={theme.colors.primary}
-                    />
+                    <IconButton icon="heart" size={24} iconColor={theme.colors.primary} />
                   </View>
                 )}
                 onPress={() => {}}
@@ -83,4 +99,4 @@ const styles = StyleSheet.create({
   duration: {
     fontSize: 14,
   },
-}); 
+});
