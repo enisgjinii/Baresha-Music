@@ -1,5 +1,6 @@
+import Header from '@/components/Header';
 import React from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { Divider, List, Surface, Switch, Text, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -12,13 +13,10 @@ export default function SettingsScreen() {
   const [isCrossfade, setIsCrossfade] = React.useState(false);
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView style={{ flex: 1 }} edges={['left', 'right', 'bottom']}>
+      <Header title="Settings" />
       <Surface style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <ScrollView>
-          <View style={styles.header}>
-            <Text style={styles.title}>Settings</Text>
-          </View>
-
           <List.Section>
             <Text style={styles.sectionTitle}>Appearance</Text>
             <List.Item

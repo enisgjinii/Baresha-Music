@@ -1,4 +1,4 @@
-import { PageWrapper } from '@/components/PageWrapper';
+import Header from '@/components/Header';
 import { usePlayerStore } from '@/store/usePlayerStore';
 import Slider from '@react-native-community/slider';
 import { Audio } from 'expo-av';
@@ -6,6 +6,7 @@ import * as MediaLibrary from 'expo-media-library';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Animated, Dimensions, FlatList, Image, Platform, StyleSheet, View } from 'react-native';
 import { Button, Card, Dialog, IconButton, List, Menu, Portal, Searchbar, Text, useTheme } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 const fadeAnim = new Animated.Value(1);
@@ -41,8 +42,16 @@ export default function PlayerScreen() {
   const [showPlaylistDialog, setShowPlaylistDialog] = useState(false);
   const [selectedTrack, setSelectedTrack] = useState<LocalTrack | null>(null);
   const [showEqualizer, setShowEqualizer] = useState(false);
+  const [equalizerSettings, setEqualizerSettings] = useState({
+    bass: 50,
+    mid: 50,
+    treble: 50,
+    volume: 70,
+  });
   const [showSleepTimer, setShowSleepTimer] = useState(false);
   const [sleepTimerMinutes, setSleepTimerMinutes] = useState(30);
+  const [sleepTimerActive, setSleepTimerActive] = useState(false);
+  const [sleepTimerId, setSleepTimerId] = useState<NodeJS.Timeout | null>(null);
   const [showLyrics, setShowLyrics] = useState(false);
   const [lyrics, setLyrics] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +77,7 @@ export default function PlayerScreen() {
   useEffect(() => {
     setupAudio();
     requestPermissions();
+    loadTracks();
     return () => {
       cleanupAudio();
     };
@@ -223,14 +233,17 @@ export default function PlayerScreen() {
       if (status.didJustFinish) {
         if (repeatMode === 'one') {
           sound?.replayAsync();
-        } else if (repeatMode === 'all') {
+        } else if (repeatMode === 'all' || repeatMode === 'off') {
           const currentIndex = tracks.findIndex(t => t.id === currentTrack?.id);
           const nextIndex = (currentIndex + 1) % tracks.length;
-          loadAndPlayTrack(tracks[nextIndex]);
-        } else {
-          const currentIndex = tracks.findIndex(t => t.id === currentTrack?.id);
-          const nextIndex = (currentIndex + 1) % tracks.length;
-          loadAndPlayTrack(tracks[nextIndex]);
+          
+          // If this is the last track and repeatMode is 'off', only play next if not the last track
+          if (repeatMode === 'off' && currentIndex === tracks.length - 1 && tracks.length > 0) {
+            sound?.pauseAsync();
+            setIsPlaying(false);
+          } else {
+            loadAndPlayTrack(tracks[nextIndex]);
+          }
         }
       }
     }
@@ -313,12 +326,34 @@ export default function PlayerScreen() {
   };
 
   const startSleepTimer = () => {
+    // Clear any existing timer
+    if (sleepTimerId) {
+      clearTimeout(sleepTimerId);
+    }
+    
     const timer = setTimeout(() => {
       if (sound) {
         sound.pauseAsync();
+        setIsPlaying(false);
       }
+      setSleepTimerActive(false);
+      setSleepTimerId(null);
     }, sleepTimerMinutes * 60 * 1000);
-    return () => clearTimeout(timer);
+    
+    setSleepTimerId(timer as unknown as NodeJS.Timeout);
+    setSleepTimerActive(true);
+    
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  };
+  
+  const cancelSleepTimer = () => {
+    if (sleepTimerId) {
+      clearTimeout(sleepTimerId);
+      setSleepTimerId(null);
+      setSleepTimerActive(false);
+    }
   };
 
   const fetchLyrics = async (track: LocalTrack) => {
@@ -383,20 +418,22 @@ export default function PlayerScreen() {
 
   if (isLoading) {
     return (
-      <PageWrapper>
+      <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right', 'bottom']}>
+        <Header title="Player" />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text style={[styles.loadingText, { color: theme.colors.onSurfaceVariant }]}>
             Loading your music...
           </Text>
         </View>
-      </PageWrapper>
+      </SafeAreaView>
     );
   }
 
   if (error) {
     return (
-      <PageWrapper>
+      <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right', 'bottom']}>
+        <Header title="Player" />
         <View style={styles.errorContainer}>
           <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
           <Button 
@@ -407,12 +444,13 @@ export default function PlayerScreen() {
             Retry
           </Button>
         </View>
-      </PageWrapper>
+      </SafeAreaView>
     );
   }
 
   return (
-    <PageWrapper>
+    <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right', 'bottom']}>
+      <Header title="Player" />
       <View style={[styles.searchContainer, { paddingTop: 16 }]}>
         <Searchbar
           placeholder="Search your music..."
@@ -512,12 +550,17 @@ export default function PlayerScreen() {
                 iconColor={theme.colors.onSurfaceVariant}
                 onPress={() => setShowEqualizer(true)}
               />
-              <IconButton
-                icon="timer"
-                size={24}
-                iconColor={theme.colors.onSurfaceVariant}
-                onPress={() => setShowSleepTimer(true)}
-              />
+              <View>
+                <IconButton
+                  icon="timer"
+                  size={24}
+                  iconColor={sleepTimerActive ? theme.colors.primary : theme.colors.onSurfaceVariant}
+                  onPress={() => setShowSleepTimer(true)}
+                />
+                {sleepTimerActive && (
+                  <View style={styles.timerActiveDot} />
+                )}
+              </View>
               <IconButton
                 icon="format-list-bulleted"
                 size={24}
@@ -565,26 +608,112 @@ export default function PlayerScreen() {
           </Dialog.Content>
         </Dialog>
 
+        <Dialog visible={showEqualizer} onDismiss={() => setShowEqualizer(false)}>
+          <Dialog.Title>Equalizer</Dialog.Title>
+          <Dialog.Content>
+            <Text style={styles.equalizerLabel}>Bass</Text>
+            <Slider
+              style={styles.equalizerSlider}
+              minimumValue={0}
+              maximumValue={100}
+              step={1}
+              value={equalizerSettings.bass}
+              onValueChange={(value) => 
+                setEqualizerSettings({...equalizerSettings, bass: value})
+              }
+              minimumTrackTintColor={theme.colors.primary}
+              thumbTintColor={theme.colors.primary}
+            />
+            
+            <Text style={styles.equalizerLabel}>Mid</Text>
+            <Slider
+              style={styles.equalizerSlider}
+              minimumValue={0}
+              maximumValue={100}
+              step={1}
+              value={equalizerSettings.mid}
+              onValueChange={(value) => 
+                setEqualizerSettings({...equalizerSettings, mid: value})
+              }
+              minimumTrackTintColor={theme.colors.primary}
+              thumbTintColor={theme.colors.primary}
+            />
+            
+            <Text style={styles.equalizerLabel}>Treble</Text>
+            <Slider
+              style={styles.equalizerSlider}
+              minimumValue={0}
+              maximumValue={100}
+              step={1}
+              value={equalizerSettings.treble}
+              onValueChange={(value) => 
+                setEqualizerSettings({...equalizerSettings, treble: value})
+              }
+              minimumTrackTintColor={theme.colors.primary}
+              thumbTintColor={theme.colors.primary}
+            />
+            
+            <Text style={styles.equalizerLabel}>Volume</Text>
+            <Slider
+              style={styles.equalizerSlider}
+              minimumValue={0}
+              maximumValue={100}
+              step={1}
+              value={equalizerSettings.volume}
+              onValueChange={(value) => 
+                setEqualizerSettings({...equalizerSettings, volume: value})
+              }
+              minimumTrackTintColor={theme.colors.primary}
+              thumbTintColor={theme.colors.primary}
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowEqualizer(false)}>Close</Button>
+          </Dialog.Actions>
+        </Dialog>
+
         <Dialog visible={showSleepTimer} onDismiss={() => setShowSleepTimer(false)}>
           <Dialog.Title>Sleep Timer</Dialog.Title>
           <Dialog.Content>
-            <Text>Set timer (minutes):</Text>
-            <Slider
-              style={styles.sleepTimerSlider}
-              minimumValue={5}
-              maximumValue={120}
-              step={5}
-              value={sleepTimerMinutes}
-              onValueChange={setSleepTimerMinutes}
-            />
-            <Text>{sleepTimerMinutes} minutes</Text>
+            {sleepTimerActive ? (
+              <View style={styles.sleepTimerActiveContainer}>
+                <Text style={styles.sleepTimerActiveText}>
+                  Sleep timer active: {sleepTimerMinutes} minutes
+                </Text>
+                <Button 
+                  mode="contained" 
+                  onPress={() => {
+                    cancelSleepTimer();
+                    setShowSleepTimer(false);
+                  }}
+                  style={styles.cancelTimerButton}
+                >
+                  Cancel Timer
+                </Button>
+              </View>
+            ) : (
+              <>
+                <Text>Set timer (minutes):</Text>
+                <Slider
+                  style={styles.sleepTimerSlider}
+                  minimumValue={5}
+                  maximumValue={120}
+                  step={5}
+                  value={sleepTimerMinutes}
+                  onValueChange={setSleepTimerMinutes}
+                />
+                <Text>{sleepTimerMinutes} minutes</Text>
+              </>
+            )}
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setShowSleepTimer(false)}>Cancel</Button>
-            <Button onPress={() => {
-              startSleepTimer();
-              setShowSleepTimer(false);
-            }}>Start</Button>
+            {!sleepTimerActive && (
+              <Button onPress={() => {
+                startSleepTimer();
+                setShowSleepTimer(false);
+              }}>Start</Button>
+            )}
           </Dialog.Actions>
         </Dialog>
 
@@ -595,7 +724,7 @@ export default function PlayerScreen() {
           </Dialog.Content>
         </Dialog>
       </Portal>
-    </PageWrapper>
+    </SafeAreaView>
   );
 }
 
@@ -707,5 +836,36 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     marginTop: 16,
+  },
+  equalizerLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  equalizerSlider: {
+    width: '100%',
+    height: 40,
+  },
+  sleepTimerActiveContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sleepTimerActiveText: {
+    fontSize: 16,
+  },
+  cancelTimerButton: {
+    marginLeft: 16,
+  },
+  timerActiveDot: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  timerDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'red',
   },
 });

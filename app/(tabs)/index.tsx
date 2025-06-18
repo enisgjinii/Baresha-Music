@@ -1,3 +1,4 @@
+import Header from '@/components/Header';
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -364,6 +365,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['left', 'right', 'bottom']}>
+      <Header title="Home" />
       <Surface style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: 16 }]}>
         <View style={styles.searchContainer}>
           <Searchbar

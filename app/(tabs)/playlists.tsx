@@ -1,4 +1,4 @@
-import { useNavigation } from '@react-navigation/native';
+import Header from '@/components/Header';
 import React from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { Card, FAB, IconButton, Surface, Text, useTheme } from 'react-native-paper';
@@ -13,16 +13,12 @@ const samplePlaylists = [
 
 export default function PlaylistsScreen() {
   const theme = useTheme();
-  const navigation = useNavigation();
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['left', 'right', 'bottom']}>
+      <Header title="Playlists" />
       <Surface style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: 16 }]}>
         <ScrollView>
-          <Surface style={styles.header} elevation={0}>
-            <Text style={styles.title}>Playlists</Text>
-          </Surface>
-
           <Surface style={styles.grid} elevation={0}>
             {samplePlaylists.map(playlist => (
               <Card key={playlist.id} style={styles.playlistCard}>
@@ -62,14 +58,6 @@ export default function PlaylistsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    padding: 20,
-    paddingTop: 40,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
   },
   grid: {
     padding: 10,

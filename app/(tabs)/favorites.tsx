@@ -1,3 +1,4 @@
+import Header from '@/components/Header';
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Card, Divider, IconButton, List, Surface, Text, useTheme } from 'react-native-paper';
@@ -38,13 +39,10 @@ export default function FavoritesScreen() {
   const theme = useTheme();
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView style={{ flex: 1 }} edges={['left', 'right', 'bottom']}>
+      <Header title="Favorites" />
       <Surface style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <ScrollView>
-          <Surface style={styles.header} elevation={0}>
-            <Text style={styles.title}>Favorites</Text>
-          </Surface>
-
           <Card style={styles.listCard}>
             {sampleFavorites.map((track, index) => (
               <React.Fragment key={track.id}>

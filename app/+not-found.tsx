@@ -1,21 +1,23 @@
-import { Link, Stack } from 'expo-router';
+import Header from '@/components/Header';
+import { Link } from 'expo-router';
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Surface, Text, useTheme } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function NotFoundScreen() {
   const theme = useTheme();
 
   return (
-    <>
-      <Stack.Screen options={{ title: 'Oops!' }} />
-      <Surface style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: 16 }]}>
+    <SafeAreaView style={{ flex: 1 }} edges={['left', 'right', 'bottom']}>
+      <Header title="Not Found" />
+      <Surface style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <Text style={styles.title}>This screen does not exist.</Text>
         <Link href="/" style={styles.link}>
           <Text style={[styles.linkText, { color: theme.colors.primary }]}>Go to home screen!</Text>
         </Link>
       </Surface>
-    </>
+    </SafeAreaView>
   );
 }
 
