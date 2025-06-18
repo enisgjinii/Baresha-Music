@@ -1,11 +1,11 @@
+import { PageWrapper } from '@/components/PageWrapper';
 import { usePlayerStore } from '@/store/usePlayerStore';
 import Slider from '@react-native-community/slider';
 import { Audio } from 'expo-av';
 import * as MediaLibrary from 'expo-media-library';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Animated, Dimensions, FlatList, Image, StyleSheet, View } from 'react-native';
-import { Button, Card, Dialog, IconButton, List, Menu, Portal, Searchbar, Surface, Text, useTheme } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, Animated, Dimensions, FlatList, Image, Platform, StyleSheet, View } from 'react-native';
+import { Button, Card, Dialog, IconButton, List, Menu, Portal, Searchbar, Text, useTheme } from 'react-native-paper';
 
 const { width } = Dimensions.get('window');
 const fadeAnim = new Animated.Value(1);
@@ -45,6 +45,7 @@ export default function PlayerScreen() {
   const [sleepTimerMinutes, setSleepTimerMinutes] = useState(30);
   const [showLyrics, setShowLyrics] = useState(false);
   const [lyrics, setLyrics] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
 
   const {
     sound,
@@ -72,6 +73,22 @@ export default function PlayerScreen() {
     };
   }, []);
 
+  const requestPermissions = async () => {
+    try {
+      if (Platform.OS === 'android') {
+        const { status: mediaStatus } = await MediaLibrary.requestPermissionsAsync();
+        if (mediaStatus !== 'granted') {
+          console.log('Media library permission not granted');
+          return false;
+        }
+      }
+      return true;
+    } catch (error) {
+      console.error('Error requesting permissions:', error);
+      return false;
+    }
+  };
+
   const setupAudio = async () => {
     try {
       await Audio.setAudioModeAsync({
@@ -93,15 +110,15 @@ export default function PlayerScreen() {
     }
   };
 
-  const requestPermissions = async () => {
-    const { status } = await MediaLibrary.requestPermissionsAsync();
-    if (status === 'granted') {
-      loadTracks();
-    }
-  };
-
   const loadTracks = async () => {
     try {
+      const hasPermission = await requestPermissions();
+      if (!hasPermission) {
+        setError('Permission to access media library was denied');
+        setIsLoading(false);
+        return;
+      }
+
       const { assets } = await MediaLibrary.getAssetsAsync({
         mediaType: 'audio',
         first: 100,
@@ -127,6 +144,7 @@ export default function PlayerScreen() {
       }
     } catch (error) {
       console.error('Error loading tracks:', error);
+      setError('Failed to load tracks. Please check your permissions.');
     } finally {
       setIsLoading(false);
     }
@@ -365,204 +383,219 @@ export default function PlayerScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <PageWrapper>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text style={[styles.loadingText, { color: theme.colors.onSurfaceVariant }]}>
             Loading your music...
           </Text>
         </View>
-      </SafeAreaView>
+      </PageWrapper>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageWrapper>
+        <View style={styles.errorContainer}>
+          <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
+          <Button 
+            mode="contained" 
+            onPress={loadTracks}
+            style={styles.retryButton}
+          >
+            Retry
+          </Button>
+        </View>
+      </PageWrapper>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Surface style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <View style={styles.searchContainer}>
-          <Searchbar
-            placeholder="Search your music..."
-            onChangeText={setSearchQuery}
-            value={searchQuery}
-            style={styles.searchBar}
-            iconColor={theme.colors.primary}
-          />
-        </View>
-
-        {currentTrack && (
-          <Animated.View style={{ opacity: fadeAnim }}>
-            <Card style={[styles.nowPlayingCard, { backgroundColor: theme.colors.surfaceVariant }]}>
-              <Card.Cover
-                source={
-                  currentTrack.artwork
-                    ? { uri: currentTrack.artwork }
-                    : require('../../assets/images/icon.png')
-                }
-                style={styles.currentArtwork}
-              />
-              <Card.Content style={styles.nowPlayingInfo}>
-                <Text style={styles.currentTitle} numberOfLines={1}>
-                  {currentTrack.title}
-                </Text>
-                <Text style={[styles.currentArtist, { color: theme.colors.onSurfaceVariant }]}>
-                  {currentTrack.artist}
-                </Text>
-              </Card.Content>
-
-              <View style={styles.progressContainer}>
-                <Slider
-                  style={styles.progressBar}
-                  minimumValue={0}
-                  maximumValue={duration}
-                  value={position}
-                  onValueChange={onSliderValueChange}
-                  minimumTrackTintColor={theme.colors.primary}
-                  maximumTrackTintColor={theme.colors.surfaceVariant}
-                  thumbTintColor={theme.colors.primary}
-                />
-                <View style={styles.timeContainer}>
-                  <Text style={[styles.timeText, { color: theme.colors.onSurfaceVariant }]}>
-                    {formatTime(position)}
-                  </Text>
-                  <Text style={[styles.timeText, { color: theme.colors.onSurfaceVariant }]}>
-                    {formatTime(duration)}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.controls}>
-                <IconButton
-                  icon={isShuffle ? 'shuffle-variant' : 'shuffle'}
-                  size={24}
-                  iconColor={isShuffle ? theme.colors.primary : theme.colors.onSurfaceVariant}
-                  onPress={() => setIsShuffle(!isShuffle)}
-                />
-                <IconButton
-                  icon="skip-previous"
-                  size={32}
-                  iconColor={theme.colors.primary}
-                  onPress={playPrevious}
-                />
-                <IconButton
-                  icon={isPlaying ? 'pause' : 'play'}
-                  size={48}
-                  iconColor={theme.colors.primary}
-                  onPress={togglePlayback}
-                />
-                <IconButton
-                  icon="skip-next"
-                  size={32}
-                  iconColor={theme.colors.primary}
-                  onPress={playNext}
-                />
-                <IconButton
-                  icon={repeatMode === 'all' ? 'repeat' : repeatMode === 'one' ? 'repeat-once' : 'repeat-off'}
-                  size={24}
-                  iconColor={repeatMode !== 'off' ? theme.colors.primary : theme.colors.onSurfaceVariant}
-                  onPress={() =>
-                    setRepeatMode(
-                      repeatMode === 'off'
-                        ? 'all'
-                        : repeatMode === 'all'
-                        ? 'one'
-                        : 'off'
-                    )
-                  }
-                />
-              </View>
-
-              <View style={styles.additionalControls}>
-                <IconButton
-                  icon="equalizer"
-                  size={24}
-                  iconColor={theme.colors.onSurfaceVariant}
-                  onPress={() => setShowEqualizer(true)}
-                />
-                <IconButton
-                  icon="timer"
-                  size={24}
-                  iconColor={theme.colors.onSurfaceVariant}
-                  onPress={() => setShowSleepTimer(true)}
-                />
-                <IconButton
-                  icon="format-list-bulleted"
-                  size={24}
-                  iconColor={theme.colors.onSurfaceVariant}
-                  onPress={() => setShowPlaylistDialog(true)}
-                />
-              </View>
-            </Card>
-          </Animated.View>
-        )}
-
-        <FlatList
-          data={filteredTracks}
-          renderItem={renderTrackItem}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.trackList}
-          showsVerticalScrollIndicator={false}
+    <PageWrapper>
+      <View style={[styles.searchContainer, { paddingTop: 16 }]}>
+        <Searchbar
+          placeholder="Search your music..."
+          onChangeText={setSearchQuery}
+          value={searchQuery}
+          style={styles.searchBar}
+          iconColor={theme.colors.primary}
         />
+      </View>
 
-        <Portal>
-          <Dialog visible={showPlaylistDialog} onDismiss={() => setShowPlaylistDialog(false)}>
-            <Dialog.Title>Add to Playlist</Dialog.Title>
-            <Dialog.Content>
-              {playlists.map(playlist => (
-                <List.Item
-                  key={playlist.id}
-                  title={playlist.name}
-                  onPress={() => {
-                    if (selectedTrack) {
-                      addToPlaylist(playlist.id, selectedTrack);
-                    }
-                    setShowPlaylistDialog(false);
-                  }}
-                />
-              ))}
-              <Button
-                mode="contained"
-                onPress={() => {
-                  createPlaylist('New Playlist');
-                }}
-                style={styles.createPlaylistButton}
-              >
-                Create New Playlist
-              </Button>
-            </Dialog.Content>
-          </Dialog>
+      {currentTrack && (
+        <Animated.View style={{ opacity: fadeAnim }}>
+          <Card style={[styles.nowPlayingCard, { backgroundColor: theme.colors.surfaceVariant }]}>
+            <Card.Cover
+              source={
+                currentTrack.artwork
+                  ? { uri: currentTrack.artwork }
+                  : require('../../assets/images/icon.png')
+              }
+              style={styles.currentArtwork}
+            />
+            <Card.Content style={styles.nowPlayingInfo}>
+              <Text style={styles.currentTitle} numberOfLines={1}>
+                {currentTrack.title}
+              </Text>
+              <Text style={[styles.currentArtist, { color: theme.colors.onSurfaceVariant }]}>
+                {currentTrack.artist}
+              </Text>
+            </Card.Content>
 
-          <Dialog visible={showSleepTimer} onDismiss={() => setShowSleepTimer(false)}>
-            <Dialog.Title>Sleep Timer</Dialog.Title>
-            <Dialog.Content>
-              <Text>Set timer (minutes):</Text>
+            <View style={styles.progressContainer}>
               <Slider
-                style={styles.sleepTimerSlider}
-                minimumValue={5}
-                maximumValue={120}
-                step={5}
-                value={sleepTimerMinutes}
-                onValueChange={setSleepTimerMinutes}
+                style={styles.progressBar}
+                minimumValue={0}
+                maximumValue={duration}
+                value={position}
+                onValueChange={onSliderValueChange}
+                minimumTrackTintColor={theme.colors.primary}
+                maximumTrackTintColor={theme.colors.surfaceVariant}
+                thumbTintColor={theme.colors.primary}
               />
-              <Text>{sleepTimerMinutes} minutes</Text>
-            </Dialog.Content>
-            <Dialog.Actions>
-              <Button onPress={() => setShowSleepTimer(false)}>Cancel</Button>
-              <Button onPress={() => {
-                startSleepTimer();
-                setShowSleepTimer(false);
-              }}>Start</Button>
-            </Dialog.Actions>
-          </Dialog>
+              <View style={styles.timeContainer}>
+                <Text style={[styles.timeText, { color: theme.colors.onSurfaceVariant }]}>
+                  {formatTime(position)}
+                </Text>
+                <Text style={[styles.timeText, { color: theme.colors.onSurfaceVariant }]}>
+                  {formatTime(duration)}
+                </Text>
+              </View>
+            </View>
 
-          <Dialog visible={showLyrics} onDismiss={() => setShowLyrics(false)}>
-            <Dialog.Title>Lyrics</Dialog.Title>
-            <Dialog.Content>
-              <Text>{lyrics}</Text>
-            </Dialog.Content>
-          </Dialog>
-        </Portal>
-      </Surface>
-    </SafeAreaView>
+            <View style={styles.controls}>
+              <IconButton
+                icon={isShuffle ? 'shuffle-variant' : 'shuffle'}
+                size={24}
+                iconColor={isShuffle ? theme.colors.primary : theme.colors.onSurfaceVariant}
+                onPress={() => setIsShuffle(!isShuffle)}
+              />
+              <IconButton
+                icon="skip-previous"
+                size={32}
+                iconColor={theme.colors.primary}
+                onPress={playPrevious}
+              />
+              <IconButton
+                icon={isPlaying ? 'pause' : 'play'}
+                size={48}
+                iconColor={theme.colors.primary}
+                onPress={togglePlayback}
+              />
+              <IconButton
+                icon="skip-next"
+                size={32}
+                iconColor={theme.colors.primary}
+                onPress={playNext}
+              />
+              <IconButton
+                icon={repeatMode === 'all' ? 'repeat' : repeatMode === 'one' ? 'repeat-once' : 'repeat-off'}
+                size={24}
+                iconColor={repeatMode !== 'off' ? theme.colors.primary : theme.colors.onSurfaceVariant}
+                onPress={() =>
+                  setRepeatMode(
+                    repeatMode === 'off'
+                      ? 'all'
+                      : repeatMode === 'all'
+                      ? 'one'
+                      : 'off'
+                  )
+                }
+              />
+            </View>
+
+            <View style={styles.additionalControls}>
+              <IconButton
+                icon="equalizer"
+                size={24}
+                iconColor={theme.colors.onSurfaceVariant}
+                onPress={() => setShowEqualizer(true)}
+              />
+              <IconButton
+                icon="timer"
+                size={24}
+                iconColor={theme.colors.onSurfaceVariant}
+                onPress={() => setShowSleepTimer(true)}
+              />
+              <IconButton
+                icon="format-list-bulleted"
+                size={24}
+                iconColor={theme.colors.onSurfaceVariant}
+                onPress={() => setShowPlaylistDialog(true)}
+              />
+            </View>
+          </Card>
+        </Animated.View>
+      )}
+
+      <FlatList
+        data={filteredTracks}
+        renderItem={renderTrackItem}
+        keyExtractor={item => item.id}
+        contentContainerStyle={styles.trackList}
+        showsVerticalScrollIndicator={false}
+      />
+
+      <Portal>
+        <Dialog visible={showPlaylistDialog} onDismiss={() => setShowPlaylistDialog(false)}>
+          <Dialog.Title>Add to Playlist</Dialog.Title>
+          <Dialog.Content>
+            {playlists.map(playlist => (
+              <List.Item
+                key={playlist.id}
+                title={playlist.name}
+                onPress={() => {
+                  if (selectedTrack) {
+                    addToPlaylist(playlist.id, selectedTrack);
+                  }
+                  setShowPlaylistDialog(false);
+                }}
+              />
+            ))}
+            <Button
+              mode="contained"
+              onPress={() => {
+                createPlaylist('New Playlist');
+              }}
+              style={styles.createPlaylistButton}
+            >
+              Create New Playlist
+            </Button>
+          </Dialog.Content>
+        </Dialog>
+
+        <Dialog visible={showSleepTimer} onDismiss={() => setShowSleepTimer(false)}>
+          <Dialog.Title>Sleep Timer</Dialog.Title>
+          <Dialog.Content>
+            <Text>Set timer (minutes):</Text>
+            <Slider
+              style={styles.sleepTimerSlider}
+              minimumValue={5}
+              maximumValue={120}
+              step={5}
+              value={sleepTimerMinutes}
+              onValueChange={setSleepTimerMinutes}
+            />
+            <Text>{sleepTimerMinutes} minutes</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowSleepTimer(false)}>Cancel</Button>
+            <Button onPress={() => {
+              startSleepTimer();
+              setShowSleepTimer(false);
+            }}>Start</Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog visible={showLyrics} onDismiss={() => setShowLyrics(false)}>
+          <Dialog.Title>Lyrics</Dialog.Title>
+          <Dialog.Content>
+            <Text>{lyrics}</Text>
+          </Dialog.Content>
+        </Dialog>
+      </Portal>
+    </PageWrapper>
   );
 }
 
@@ -581,6 +614,7 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     padding: 16,
+    paddingTop: 8,
   },
   searchBar: {
     elevation: 2,
@@ -630,10 +664,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingBottom: 16,
   },
-  playButton: {
-    marginHorizontal: 16,
-    elevation: 4,
-  },
   additionalControls: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -665,5 +695,17 @@ const styles = StyleSheet.create({
   sleepTimerSlider: {
     width: '100%',
     height: 40,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    marginBottom: 16,
+    fontSize: 16,
+  },
+  retryButton: {
+    marginTop: 16,
   },
 });

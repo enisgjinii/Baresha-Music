@@ -363,8 +363,8 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right', 'bottom']}>
-      <Surface style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView style={{ flex: 1 }} edges={['left', 'right', 'bottom']}>
+      <Surface style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: 16 }]}>
         <View style={styles.searchContainer}>
           <Searchbar
             placeholder="Search songs, artists, or playlists..."

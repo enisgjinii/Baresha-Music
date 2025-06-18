@@ -16,8 +16,8 @@ export default function PlaylistsScreen() {
   const navigation = useNavigation();
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right', 'bottom']}>
-      <Surface style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView style={{ flex: 1 }} edges={['left', 'right', 'bottom']}>
+      <Surface style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: 16 }]}>
         <ScrollView>
           <Surface style={styles.header} elevation={0}>
             <Text style={styles.title}>Playlists</Text>

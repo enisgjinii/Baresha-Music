@@ -4,7 +4,7 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 import { useTheme } from 'react-native-paper';
 
-export default function TabLayout() {
+export default function AppLayout() {
   const theme = useTheme();
 
   return (
@@ -12,10 +12,9 @@ export default function TabLayout() {
       screenOptions={{
         headerStyle: {
           backgroundColor: theme.colors.primary,
-          height: 56,
+          height: 0,
         },
-        headerShown: true,
-        headerTintColor: '#FFFFFF',
+        headerShown: false,
         drawerStyle: {
           backgroundColor: theme.colors.background,
         },
@@ -72,13 +71,6 @@ export default function TabLayout() {
         }}
       />
       <Drawer.Screen
-        name="playlists"
-        options={{
-          title: 'Playlists',
-          drawerLabel: 'Playlists',
-        }}
-      />
-      <Drawer.Screen
         name="settings"
         options={{
           title: 'Settings',
@@ -104,4 +96,4 @@ const styles = StyleSheet.create({
   drawerLabelActive: {
     fontWeight: 'bold',
   },
-});
+}); 

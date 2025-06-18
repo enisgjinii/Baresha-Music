@@ -5,7 +5,8 @@ export default function Layout() {
   return (
     <PaperProvider>
       <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="+not-found" />
       </Stack>
     </PaperProvider>
   );
