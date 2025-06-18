@@ -1,12 +1,13 @@
 import Header from '@/components/Header';
+import { useThemeStore, type ThemePreference } from '@/store/useThemeStore';
 import React from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
-import { Divider, List, Surface, Switch, Text, useTheme } from 'react-native-paper';
+import { Divider, List, RadioButton, Surface, Switch, Text, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SettingsScreen() {
   const theme = useTheme();
-  const [isDarkMode, setIsDarkMode] = React.useState(false);
+  const { preference, setPreference } = useThemeStore();
   const [isHighQuality, setIsHighQuality] = React.useState(true);
   const [isOfflineMode, setIsOfflineMode] = React.useState(false);
   const [isAutoPlay, setIsAutoPlay] = React.useState(true);
@@ -19,22 +20,26 @@ export default function SettingsScreen() {
         <ScrollView>
           <List.Section>
             <Text style={styles.sectionTitle}>Appearance</Text>
-            <List.Item
-              title="Dark Mode"
-              description="Switch between light and dark theme"
-              titleStyle={styles.itemTitle}
-              descriptionStyle={styles.itemDescription}
-              left={props => (
-                <List.Icon {...props} icon="weather-night" color={theme.colors.primary} />
-              )}
-              right={() => (
-                <Switch
-                  value={isDarkMode}
-                  onValueChange={setIsDarkMode}
-                  color={theme.colors.primary}
-                />
-              )}
-            />
+            <RadioButton.Group onValueChange={(value: string) => setPreference(value as ThemePreference)} value={preference}>
+              <RadioButton.Item
+                label="System Default"
+                value="system"
+                labelStyle={styles.itemTitle}
+                color={theme.colors.primary}
+              />
+              <RadioButton.Item
+                label="Light Theme"
+                value="light"
+                labelStyle={styles.itemTitle}
+                color={theme.colors.primary}
+              />
+              <RadioButton.Item
+                label="Dark Theme"
+                value="dark"
+                labelStyle={styles.itemTitle}
+                color={theme.colors.primary}
+              />
+            </RadioButton.Group>
             <Divider />
           </List.Section>
 

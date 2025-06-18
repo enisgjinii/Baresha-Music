@@ -1,10 +1,13 @@
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { useThemeStore } from '@/store/useThemeStore';
 import { Stack } from 'expo-router';
-import { useColorScheme } from 'react-native';
 import { MD3DarkTheme, MD3LightTheme, PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 export default function Layout() {
-  const colorScheme = useColorScheme();
+  const systemScheme = useColorScheme();
+  const { preference } = useThemeStore();
+  const colorScheme = preference === 'system' ? (systemScheme ?? 'light') : preference;
   
   // Create custom theme with brand colors
   const paperTheme = colorScheme === 'dark' 
